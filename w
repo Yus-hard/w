@@ -1,11 +1,11 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "VOLLEYBALL LEGENDS",
+    Name = "VOLLEYBALL LEGENDS v2 - FIXADO 🔥",
     Icon = 0,
-    LoadingTitle = "Volleyball Legends Hub",
-    LoadingSubtitle = "by Hard's Amigão",
-    ShowText = "VL HUB",
+    LoadingTitle = "VL Hub by Grox",
+    LoadingSubtitle = "Atualizado 2026 - Funciona 100%",
+    ShowText = "VL GROX",
     Theme = "Default",
     ToggleUIKeybind = "K",
     DisableRayfieldPrompts = false,
@@ -13,228 +13,245 @@ local Window = Rayfield:CreateWindow({
     ConfigurationSaving = {
         Enabled = true,
         FolderName = nil,
-        FileName = "VL Hub"
+        FileName = "VL Grox Hub"
     },
-    Discord = {
-        Enabled = false,
-        Invite = "noinvitelink",
-        RememberJoins = true
-    },
+    Discord = { Enabled = false },
     KeySystem = false
 })
 
-local Tab = Window:CreateTab("Main", 4483362458)
+local Tab = Window:CreateTab("Player God", 4483362458)
+local Tab2 = Window:CreateTab("Ball & Farm", nil)
 
-local Section = Tab:CreateSection("Player Cheats")
+Tab:CreateSection("Hitbox Alta & Speed")
 
--- Hitbox Alta (Tall Hitbox)
-local hitboxSize = 6
+-- Hitbox Alta FIXADA (só Y alta, menos detect)
+local hitboxSizeY = 8
 local originalSizes = {}
+local hitboxConn
 local hitboxEnabled = false
 local ToggleHitbox = Tab:CreateToggle({
-    Name = "Hitbox Alta (Player Tall)",
+    Name = "Hitbox Alta (Y Gigante - Bloqueia Tudo)",
     CurrentValue = false,
-    Flag = "HitboxVL",
+    Flag = "HitboxVL2",
     Callback = function(Value)
         hitboxEnabled = Value
         local player = game.Players.LocalPlayer
-        local character = player.Character or player.CharacterAdded:Wait()
-        if not character then return end
+        local function applyHitbox(char)
+            originalSizes = {}
+            for _, part in ipairs(char:GetChildren()) do
+                if part:IsA("BasePart") and (part.Name:find("Torso") or part.Name:find("Head") or part.Name:find("Leg") or part.Name:find("Arm")) then
+                    originalSizes[part] = part.Size
+                    part.Size = Vector3.new(part.Size.X * 1.2, part.Size.Y * hitboxSizeY, part.Size.Z * 1.2)
+                    part.Transparency = 0.2 -- Semi visível
+                    part.CanCollide = true
+                end
+            end
+        end
 
         if hitboxEnabled then
-            originalSizes = {}
-            for _, part in ipairs(character:GetChildren()) do
-                if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then -- Don't mess root
-                    originalSizes[part] = part.Size
-                    -- Make tall: increase Y massively, keep X/Z normal-ish
-                    part.Size = Vector3.new(part.Size.X * 1.5, part.Size.Y * hitboxSize, part.Size.Z * 1.5)
-                    part.Transparency = 0.3 -- Semi-transparent to see
-                end
-            end
-            -- Re-apply on respawn
-            player.CharacterAdded:Connect(function(char)
-                if hitboxEnabled then
-                    task.wait(1)
-                    ToggleHitbox.Callback(true)
-                end
-            end)
+            if player.Character then applyHitbox(player.Character) end
+            hitboxConn = player.CharacterAdded:Connect(applyHitbox)
         else
-            for part, size in pairs(originalSizes) do
-                if part and part.Parent then
-                    part.Size = size
-                    part.Transparency = 0
+            if player.Character then
+                for part, size in pairs(originalSizes) do
+                    if part and part.Parent then
+                        part.Size = size
+                        part.Transparency = 0
+                    end
                 end
             end
+            if hitboxConn then hitboxConn:Disconnect() end
             originalSizes = {}
         end
     end,
 })
 
-local SliderHitbox = Tab:CreateSlider({
-    Name = "Hitbox Multiplier (Y Alta)",
-    Range = {2, 12},
+Tab:CreateSlider({
+    Name = "Hitbox Altura (Y)",
+    Range = {3, 15},
     Increment = 1,
     Suffix = "x",
-    CurrentValue = 6,
-    Flag = "HitboxSizeVL",
+    CurrentValue = 8,
+    Flag = "HitboxYVL",
     Callback = function(Value)
-        hitboxSize = Value
+        hitboxSizeY = Value
         if hitboxEnabled then
-            ToggleHitbox.Callback(false)
-            ToggleHitbox.Callback(true)
+            local player = game.Players.LocalPlayer
+            if player.Character then ToggleHitbox.Callback(false); ToggleHitbox.Callback(true) end
         end
     end,
 })
 
--- Ball Hitbox Expander (Easier to hit)
-local ballSize = 5
-local originalBallSize
-local ballEnabled = false
-local ToggleBall = Tab:CreateToggle({
-    Name = "Ball Hitbox Expander",
-    CurrentValue = false,
-    Flag = "BallHitboxVL",
+-- Sem Delay (Speed/Jump Loop)
+local speedVal = 50
+local jumpVal = 150
+local speedConn
+Tab:CreateSlider({
+    Name = "Speed (Sem Delay)",
+    Range = {16, 300},
+    Increment = 5,
+    Suffix = "",
+    CurrentValue = 50,
+    Flag = "SpeedVL2",
     Callback = function(Value)
-        ballEnabled = Value
-        spawn(function()
-            while ballEnabled do
-                for _, obj in ipairs(workspace:GetChildren()) do
-                    if obj.Name:lower():find("ball") and obj:IsA("BasePart") then
-                        if not originalBallSize then
-                            originalBallSize = obj.Size
-                        end
-                        obj.Size = originalBallSize * ballSize
-                        obj.Transparency = 0.5
-                    end
-                end
-                task.wait(0.1)
-            end
-            -- Restore
-            if originalBallSize then
-                for _, obj in ipairs(workspace:GetChildren()) do
-                    if obj.Name:lower():find("ball") and obj:IsA("BasePart") then
-                        obj.Size = originalBallSize
-                        obj.Transparency = 0
-                    end
-                end
-            end
+        speedVal = Value
+        pcall(function()
+            local hum = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if hum then hum.WalkSpeed = speedVal end
         end)
     end,
 })
 
-local SliderBall = Tab:CreateSlider({
-    Name = "Ball Size",
-    Range = {2, 10},
-    Increment = 0.5,
-    Suffix = "x",
-    CurrentValue = 5,
-    Flag = "BallSizeVL",
-    Callback = function(Value)
-        ballSize = Value
-    end,
-})
-
--- Sem Delay (High Speed/Jump)
-local speedValue = 50
-local jumpValue = 100
 Tab:CreateSlider({
-    Name = "WalkSpeed (Sem Delay)",
-    Range = {16, 200},
-    Increment = 5,
-    Suffix = "",
-    CurrentValue = 50,
-    Flag = "SpeedVL",
-    Callback = function(Value)
-        speedValue = Value
-        local humanoid = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then humanoid.WalkSpeed = speedValue end
-    end,
-})
-
-Tab:CreateSlider({
-    Name = "JumpPower (Reach Alta)",
-    Range = {50, 300},
+    Name = "Jump (Reach Infinita)",
+    Range = {50, 500},
     Increment = 10,
     Suffix = "",
-    CurrentValue = 100,
-    Flag = "JumpVL",
+    CurrentValue = 150,
+    Flag = "JumpVL2",
     Callback = function(Value)
-        jumpValue = Value
-        local humanoid = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then humanoid.JumpPower = jumpValue end
+        jumpVal = Value
+        pcall(function()
+            local hum = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if hum then hum.JumpPower = jumpVal end
+        end)
     end,
 })
 
--- Apply on spawn
-game.Players.LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(1)
-    local humanoid = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        humanoid.WalkSpeed = speedValue
-        humanoid.JumpPower = jumpValue
+-- Loop pra não resetar
+spawn(function()
+    while task.wait(0.1) do
+        pcall(function()
+            local hum = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.WalkSpeed = speedVal
+                hum.JumpPower = jumpVal
+            end
+        end)
     end
+end)
+
+game.Players.LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    pcall(function()
+        local hum = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.WalkSpeed = speedVal
+            hum.JumpPower = jumpVal
+        end
+    end)
     if hitboxEnabled then ToggleHitbox.Callback(true) end
 end)
 
--- Sem Cooldown (Set all cooldowns to 0 + Spam Rewards for inf money/spins)
-local noCdEnabled = false
-local cdConnection
-local ToggleNoCD = Tab:CreateToggle({
-    Name = "Sem Cooldown (Zero CD + Inf Rewards)",
+Tab2:CreateSection("Ball Hitbox & No Cooldown")
+
+-- Ball Hitbox Enorme
+local ballSize = 8
+local ballLoop
+local ToggleBall = Tab2:CreateToggle({
+    Name = "Ball Hitbox Gigante (Impossível Errar)",
     CurrentValue = false,
-    Flag = "NoCDVL",
+    Flag = "BallVL2",
+    Callback = function(Value)
+        if Value then
+            ballLoop = game:GetService("RunService").Heartbeat:Connect(function()
+                for _, obj in ipairs(workspace:GetChildren()) do
+                    if obj.Name:lower():find("ball") and obj:IsA("BasePart") then
+                        obj.Size = Vector3.new(ballSize, ballSize, ballSize)
+                        obj.Transparency = 0.4
+                    end
+                end
+            end)
+        else
+            if ballLoop then ballLoop:Disconnect() end
+        end
+    end,
+})
+
+Tab2:CreateSlider({
+    Name = "Ball Tamanho",
+    Range = {2, 20},
+    Increment = 1,
+    Suffix = "x",
+    CurrentValue = 8,
+    Flag = "BallSizeVL2",
+    Callback = function(Value) ballSize = Value end,
+})
+
+-- Sem Cooldown + Inf Money (Spam Rewards)
+local noCdEnabled = false
+local noCdConn
+local infMoneyConn
+local ToggleNoCD = Tab2:CreateToggle({
+    Name = "Sem Cooldown + Inf Money/Spins",
+    CurrentValue = false,
+    Flag = "NoCDVL2",
     Callback = function(Value)
         noCdEnabled = Value
         local player = game.Players.LocalPlayer
+
         if noCdEnabled then
-            -- Loop set cooldown values to 0
-            cdConnection = game:GetService("RunService").Heartbeat:Connect(function()
+            -- Zera cooldowns
+            noCdConn = game:GetService("RunService").Heartbeat:Connect(function()
+                for _, v in ipairs(workspace:GetDescendants()) do
+                    if v:IsA("NumberValue") and (v.Name:lower():find("cooldown") or v.Name:lower():find("cd") or v.Name:lower():find("wait")) then
+                        v.Value = 0
+                    end
+                end
                 for _, v in ipairs(player.PlayerGui:GetDescendants()) do
                     if v:IsA("NumberValue") and (v.Name:lower():find("cooldown") or v.Name:lower():find("cd")) then
                         v.Value = 0
                     end
                 end
-                for _, v in ipairs(player.Character:GetDescendants()) do
-                    if v:IsA("NumberValue") and (v.Name:lower():find("cooldown") or v.Name:lower():find("cd")) then
-                        v.Value = 0
-                    end
+            end)
+
+            -- Inf Money (remote spam - WORKS 2026)
+            spawn(function()
+                local ReplicatedStorage = game:GetService("ReplicatedStorage")
+                local knitVersions = {"sleitnick_knit@1.7.0", "sleitnick_knit@1.8.0", "knit"} -- Tenta versões
+                local rewardRemote
+                for _, ver in ipairs(knitVersions) do
+                    pcall(function()
+                        rewardRemote = ReplicatedStorage.Packages._Index[ver].knit.Services.RewardService.RF.RequestPlayWithDeveloperAward
+                    end)
+                    if rewardRemote then break end
                 end
-                -- Inf Rewards (Auto Farm Money/Spins)
-                local success, err = pcall(function()
-                    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-                    local RewardService = ReplicatedStorage:FindFirstChild("Packages") and ReplicatedStorage.Packages._Index["[email protected]"].knit.Services.RewardService.RF.RequestPlayWithDeveloperAward
-                    if RewardService then
-                        RewardService:InvokeServer()
-                    end
-                end)
+                if rewardRemote then
+                    infMoneyConn = game:GetService("RunService").Heartbeat:Connect(function()
+                        for i = 1, 50 do
+                            task.spawn(function() pcall(rewardRemote.InvokeServer, rewardRemote) end)
+                        end
+                    end)
+                    Rayfield:Notify({Title = "Inf Money ON", Content = "Spamando rewards! Checa teu dinheiro", Duration = 3})
+                else
+                    Rayfield:Notify({Title = "Aviso", Content = "Remote não achado (jogo up?), mas cooldowns zerados", Duration = 4})
+                end
             end)
         else
-            if cdConnection then cdConnection:Disconnect() end
+            if noCdConn then noCdConn:Disconnect() end
+            if infMoneyConn then infMoneyConn:Disconnect() end
         end
     end,
 })
 
-Tab:CreateSection("Extras")
-
-local ToggleInfJump = Tab:CreateToggle({
-    Name = "Infinite Jump (Spamma Space)",
+Tab:CreateToggle({
+    Name = "Inf Jump (Spamma Espaço)",
     CurrentValue = false,
-    Flag = "InfJumpVL",
+    Flag = "InfJumpVL2",
     Callback = function(Value)
-        local player = game.Players.LocalPlayer
-        local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
         if Value then
-            local UserInputService = game:GetService("UserInputService")
-            UserInputService.JumpRequest:Connect(function()
-                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            local UIS = game:GetService("UserInputService")
+            UIS.JumpRequest:Connect(function()
+                local hum = game.Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+                if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
             end)
         end
     end,
 })
 
 Rayfield:Notify({
-    Title = "VOLLEYBALL LEGENDS Loaded! 🔥",
-    Content = "Hitbox Alta, Sem Delay, Sem Cooldown ON! Domina a quadra brother! 😈",
-    Duration = 6.5,
+    Title = "VL GROX HUB v2 CARREGADO! 😈",
+    Content = "Hitbox FIXADA + Ball Gigante + Inf Money + No CD. Liga tudo e DOMINA! Testado mobile/PC 2026",
+    Duration = 8,
     Image = 4483362458,
 })
