@@ -1,277 +1,233 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "BROOKHAVEN GROX HUB 😈",
-    LoadingTitle = "Brookhaven RP Hub",
-    LoadingSubtitle = "by Grox - Santa Catarina Style",
+    Name = "Brookhaven Grox Hub 😈",
+    Icon = 0,
+    LoadingTitle = "Brookhaven RP",
+    LoadingSubtitle = "by Grox - Delta Ready 2026",
+    ShowText = "GROX BH",
     Theme = "Default",
     ToggleUIKeybind = "K",
-    ConfigurationSaving = { Enabled = true, FileName = "BrookhavenGrox" },
+    DisableRayfieldPrompts = false,
+    DisableBuildWarnings = false,
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = nil,
+        FileName = "BrookhavenGrox"
+    },
+    Discord = { Enabled = false },
     KeySystem = false
 })
 
-local TabMain = Window:CreateTab("Main Cheats", 4483362458)
-local TabTroll = Window:CreateTab("Troll & Fun", nil)
-local TabVisual = Window:CreateTab("Visuals & ESP", nil)
+local MainTab = Window:CreateTab("Main Cheats", 4483362458)
+local VisualTab = Window:CreateTab("Visual & Troll", "rewind")
 
--- Vars
-local player = game.Players.LocalPlayer
-local char = player.Character or player.CharacterAdded:Wait()
-local hum = char:WaitForChild("Humanoid")
-local root = char:WaitForChild("HumanoidRootPart")
+local Section = MainTab:CreateSection("Player Mods")
 
--- Fly Vars
-local flyEnabled = false
-local flySpeed = 50
-local bodyVelocity, bodyGyro
-
-local function startFly()
-    if flyEnabled then return end
-    flyEnabled = true
-    bodyVelocity = Instance.new("BodyVelocity", root)
-    bodyVelocity.Velocity = Vector3.new(0,0,0)
-    bodyVelocity.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-    
-    bodyGyro = Instance.new("BodyGyro", root)
-    bodyGyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-    bodyGyro.P = 9e4
-    bodyGyro.CFrame = root.CFrame
-    
-    spawn(function()
-        while flyEnabled do
-            task.wait()
-            hum.PlatformStand = true
-            local cam = workspace.CurrentCamera
-            local moveDir = Vector3.new(0,0,0)
-            if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector end
-            if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.CFrame.LookVector end
-            if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - cam.CFrame.RightVector end
-            if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector end
-            if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0,1,0) end
-            if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.LeftControl) then moveDir = moveDir - Vector3.new(0,1,0) end
-            bodyVelocity.Velocity = moveDir * flySpeed
-            bodyGyro.CFrame = cam.CFrame
-        end
-        if bodyVelocity then bodyVelocity:Destroy() end
-        if bodyGyro then bodyGyro:Destroy() end
-        hum.PlatformStand = false
-    end)
-end
-
-local ToggleFly = TabMain:CreateToggle({
-    Name = "Fly (WASD + Space/Ctrl)",
-    CurrentValue = false,
-    Flag = "FlyBrook",
+-- Speed Slider
+local speedVal = 16
+local SpeedSlider = MainTab:CreateSlider({
+    Name = "Walk Speed",
+    Range = {16, 200},
+    Increment = 5,
+    Suffix = "",
+    CurrentValue = 16,
+    Flag = "SpeedBH",
     Callback = function(Value)
-        flyEnabled = Value
-        if Value then startFly() else flyEnabled = false end
+        speedVal = Value
+        local hum = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("Humanoid")
+        if hum then hum.WalkSpeed = Value end
     end,
 })
 
-TabMain:CreateSlider({
-    Name = "Fly Speed",
-    Range = {20, 200},
-    Increment = 5,
+-- Jump Slider
+local jumpVal = 50
+local JumpSlider = MainTab:CreateSlider({
+    Name = "Jump Power",
+    Range = {50, 300},
+    Increment = 10,
+    Suffix = "",
     CurrentValue = 50,
-    Flag = "FlySpeed",
+    Flag = "JumpBH",
+    Callback = function(Value)
+        jumpVal = Value
+        local hum = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("Humanoid")
+        if hum then hum.JumpPower = Value end
+    end,
+})
+
+-- Infinite Jump Toggle
+local InfJumpToggle = MainTab:CreateToggle({
+    Name = "Infinite Jump",
+    CurrentValue = false,
+    Flag = "InfJumpBH",
+    Callback = function(Value)
+        if Value then
+            local UIS = game:GetService("UserInputService")
+            UIS.JumpRequest:Connect(function()
+                local hum = game.Players.LocalPlayer.Character:FindFirstChild("Humanoid")
+                if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+            end)
+        end
+    end,
+})
+
+-- God Mode Toggle
+local GodToggle = MainTab:CreateToggle({
+    Name = "God Mode (No Die)",
+    CurrentValue = false,
+    Flag = "GodBH",
+    Callback = function(Value)
+        if Value then
+            local hum = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("Humanoid")
+            if hum then
+                hum.MaxHealth = math.huge
+                hum.Health = math.huge
+                hum:GetPropertyChangedSignal("Health"):Connect(function()
+                    hum.Health = math.huge
+                end)
+            end
+        end
+    end,
+})
+
+-- Fly Toggle (simples, Delta friendly)
+local flyEnabled = false
+local flySpeed = 50
+local flyToggle = MainTab:CreateToggle({
+    Name = "Fly (WASD + Space/Ctrl)",
+    CurrentValue = false,
+    Flag = "FlyBH",
+    Callback = function(Value)
+        flyEnabled = Value
+        local player = game.Players.LocalPlayer
+        local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+        local bv = root:FindFirstChild("FlyBV") or Instance.new("BodyVelocity", root)
+        bv.Name = "FlyBV"
+        bv.MaxForce = Vector3.new(1e9, 1e9, 1e9)
+        bv.Velocity = Vector3.new()
+        local bg = root:FindFirstChild("FlyBG") or Instance.new("BodyGyro", root)
+        bg.Name = "FlyBG"
+        bg.MaxTorque = Vector3.new(1e9, 1e9, 1e9)
+        bg.P = 9e4
+        if Value then
+            spawn(function()
+                while flyEnabled do
+                    task.wait()
+                    local cam = workspace.CurrentCamera
+                    local dir = Vector3.new()
+                    if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.W) then dir = dir + cam.CFrame.LookVector end
+                    if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.S) then dir = dir - cam.CFrame.LookVector end
+                    if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.A) then dir = dir - cam.CFrame.RightVector end
+                    if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.D) then dir = dir + cam.CFrame.RightVector end
+                    if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.Space) then dir = dir + Vector3.new(0,1,0) end
+                    if game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.LeftControl) then dir = dir - Vector3.new(0,1,0) end
+                    bv.Velocity = dir * flySpeed
+                    bg.CFrame = cam.CFrame
+                end
+                bv:Destroy()
+                bg:Destroy()
+            end)
+        end
+    end,
+})
+
+local FlySpeedSlider = MainTab:CreateSlider({
+    Name = "Fly Speed",
+    Range = {20, 150},
+    Increment = 5,
+    Suffix = "",
+    CurrentValue = 50,
+    Flag = "FlySpeedBH",
     Callback = function(Value) flySpeed = Value end,
 })
 
--- Noclip
+-- Noclip Toggle
 local noclipEnabled = false
 local noclipConn
-TabMain:CreateToggle({
-    Name = "Noclip (Atravessa Tudo)",
+local NoclipToggle = MainTab:CreateToggle({
+    Name = "Noclip",
     CurrentValue = false,
-    Flag = "NoclipBrook",
+    Flag = "NoclipBH",
     Callback = function(Value)
         noclipEnabled = Value
         if Value then
             noclipConn = game:GetService("RunService").Stepped:Connect(function()
-                for _, part in ipairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") then part.CanCollide = false end
+                local char = game.Players.LocalPlayer.Character
+                if char then
+                    for _, part in ipairs(char:GetDescendants()) do
+                        if part:IsA("BasePart") then part.CanCollide = false end
+                    end
                 end
             end)
         else
             if noclipConn then noclipConn:Disconnect() end
-            for _, part in ipairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then part.CanCollide = true end
-            end
         end
     end,
 })
 
--- Speed & Jump
-local speedVal = 16
-TabMain:CreateSlider({
-    Name = "Walk Speed",
-    Range = {16, 300},
-    Increment = 5,
-    CurrentValue = 16,
-    Flag = "SpeedBrook",
-    Callback = function(Value)
-        speedVal = Value
-        hum.WalkSpeed = Value
-    end,
-})
-
-local jumpVal = 50
-TabMain:CreateSlider({
-    Name = "Jump Power",
-    Range = {50, 300},
-    Increment = 10,
-    CurrentValue = 50,
-    Flag = "JumpBrook",
-    Callback = function(Value)
-        jumpVal = Value
-        hum.JumpPower = Value
-    end,
-})
-
--- Infinite Jump
-TabMain:CreateToggle({
-    Name = "Infinite Jump",
-    CurrentValue = false,
-    Flag = "InfJumpBrook",
-    Callback = function(Value)
-        if Value then
-            game:GetService("UserInputService").JumpRequest:Connect(function()
-                hum:ChangeState(Enum.HumanoidStateType.Jumping)
-            end)
-        end
-    end,
-})
-
--- God Mode (No Fall Damage / Health Lock)
-TabMain:CreateToggle({
-    Name = "God Mode (No Die)",
-    CurrentValue = false,
-    Flag = "GodBrook",
-    Callback = function(Value)
-        if Value then
-            hum.MaxHealth = math.huge
-            hum.Health = math.huge
-            hum:GetPropertyChangedSignal("Health"):Connect(function()
-                hum.Health = math.huge
-            end)
-        end
-    end,
-})
-
--- ESP Players
+-- ESP Players (Highlight)
 local espEnabled = false
-local espConns = {}
-TabVisual:CreateToggle({
-    Name = "ESP Players (Names through walls)",
+local ESPToggle = VisualTab:CreateToggle({
+    Name = "ESP Players",
     CurrentValue = false,
-    Flag = "ESPBrook",
+    Flag = "ESPBH",
     Callback = function(Value)
         espEnabled = Value
         if Value then
             for _, plr in ipairs(game.Players:GetPlayers()) do
-                if plr ~= player and plr.Character then
-                    local highlight = Instance.new("Highlight")
-                    highlight.FillColor = Color3.fromRGB(255, 0, 0)
-                    highlight.OutlineColor = Color3.fromRGB(255, 255, 0)
-                    highlight.FillTransparency = 0.5
-                    highlight.OutlineTransparency = 0
-                    highlight.Parent = plr.Character
-                    espConns[plr] = highlight
+                if plr ~= game.Players.LocalPlayer and plr.Character then
+                    local hl = Instance.new("Highlight", plr.Character)
+                    hl.FillColor = Color3.fromRGB(255, 0, 0)
+                    hl.OutlineColor = Color3.fromRGB(255, 255, 0)
+                    hl.FillTransparency = 0.5
                 end
             end
-            game.Players.PlayerAdded:Connect(function(plr)
-                plr.CharacterAdded:Connect(function(char)
-                    if espEnabled then
-                        local highlight = Instance.new("Highlight")
-                        highlight.FillColor = Color3.fromRGB(255, 0, 0)
-                        highlight.Parent = char
-                        espConns[plr] = highlight
-                    end
-                end)
-            end)
         else
-            for _, conn in pairs(espConns) do if conn then conn:Destroy() end end
-            espConns = {}
+            for _, plr in ipairs(game.Players:GetPlayers()) do
+                if plr.Character then
+                    local hl = plr.Character:FindFirstChildOfClass("Highlight")
+                    if hl then hl:Destroy() end
+                end
+            end
         end
     end,
 })
 
--- Teleport to Player (Dropdown)
-local playerList = {}
-for _, plr in ipairs(game.Players:GetPlayers()) do table.insert(playerList, plr.Name) end
-game.Players.PlayerAdded:Connect(function(plr)
-    table.insert(playerList, plr.Name)
-end)
+-- TP Dropdown (atualiza players)
+local playersList = {}
+for _, plr in ipairs(game.Players:GetPlayers()) do table.insert(playersList, plr.Name) end
+game.Players.PlayerAdded:Connect(function(plr) table.insert(playersList, plr.Name) end)
 
-TabMain:CreateDropdown({
+local TPDropdown = MainTab:CreateDropdown({
     Name = "Teleport to Player",
-    Options = playerList,
+    Options = playersList,
     CurrentOption = "",
     MultipleOptions = false,
-    Flag = "TPBrook",
+    Flag = "TPBH",
     Callback = function(Option)
         local target = game.Players:FindFirstChild(Option)
-        if target and target.Character and root then
-            root.CFrame = target.Character.HumanoidRootPart.CFrame + Vector3.new(0, 5, 0)
+        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+            local root = game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if root then root.CFrame = target.Character.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0) end
         end
     end,
 })
 
--- Troll: Invisible
-TabTroll:CreateToggle({
-    Name = "Invisible (Self)",
-    CurrentValue = false,
-    Flag = "InvisBrook",
-    Callback = function(Value)
-        for _, part in ipairs(char:GetDescendants()) do
-            if part:IsA("BasePart") or part:IsA("MeshPart") then
-                part.Transparency = Value and 1 or 0
-            end
-        end
-    end,
-})
-
--- Fling Player (Troll)
-TabTroll:CreateButton({
-    Name = "Fling Nearest Player",
-    Callback = function()
-        local nearest = nil
-        local dist = math.huge
-        for _, plr in ipairs(game.Players:GetPlayers()) do
-            if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                local d = (root.Position - plr.Character.HumanoidRootPart.Position).Magnitude
-                if d < dist then dist = d nearest = plr end
-            end
-        end
-        if nearest then
-            local hrp = nearest.Character.HumanoidRootPart
-            hrp.Velocity = Vector3.new(0, 10000, 0) -- Fling up
-        end
-    end,
-})
-
--- Notify Load
 Rayfield:Notify({
-    Title = "Brookhaven Grox Hub Loaded! 🔥",
-    Content = "Fly, Noclip, ESP, Speed tudo ON! Testa no teu Arceus X brother, sem ban wave pesada em 2026 se não abusar.",
-    Duration = 6,
+    Title = "Brookhaven Grox Hub Loaded!",
+    Content = "UI aberta com K! Testa Fly + Noclip + Speed no Delta brother. Se não abrir, checa HttpGet no console do Delta.",
+    Duration = 6.5,
     Image = 4483362458,
 })
 
 -- Re-apply on respawn
-player.CharacterAdded:Connect(function(newChar)
-    char = newChar
-    hum = newChar:WaitForChild("Humanoid")
-    root = newChar:WaitForChild("HumanoidRootPart")
+game.Players.LocalPlayer.CharacterAdded:Connect(function()
     task.wait(1)
-    hum.WalkSpeed = speedVal
-    hum.JumpPower = jumpVal
-    if flyEnabled then startFly() end
-    if noclipEnabled then -- Re-noclip
-        noclipConn = game:GetService("RunService").Stepped:Connect(function()
-            for _, part in ipairs(newChar:GetDescendants()) do
-                if part:IsA("BasePart") then part.CanCollide = false end
-            end
-        end)
+    local hum = game.Players.LocalPlayer.Character:FindFirstChild("Humanoid")
+    if hum then
+        hum.WalkSpeed = speedVal
+        hum.JumpPower = jumpVal
     end
 end)
